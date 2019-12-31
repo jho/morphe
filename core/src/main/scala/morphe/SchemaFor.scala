@@ -6,21 +6,31 @@ import higherkindness.droste.data.Fix
 import language.experimental.macros
 import scala.language.implicitConversions
 
-trait SchemaFor[T] {
+/**
+  * Used to conjure up a schema for a type.  This trait is sealed because it
+  * is not meant for extention.  SchemaFor instances exist for all necessary types, or an Injection can be used to
+  * create a Schema for a User Defined Type
+  */
+sealed trait SchemaFor[T] {
   def schema: DataType
+}
+
+abstract class Injection[T, P] {
+  def to(t: T): P
+  def from(p: P): Either[Throwable, T]
 }
 
 object SchemaFor {
   import DataTypeF._
   type Typeclass[T] = SchemaFor[T]
 
-  private def primitive[T](prim: PrimitiveTypeF[T]) = new SchemaFor[T] { def schema: DataType = Fix[DataTypeF](prim) }
+  implicit def primitive[T: PrimitiveTypeF]: SchemaFor[T] = new SchemaFor[T] {
+    def schema: DataType = Fix[DataTypeF](implicitly[PrimitiveTypeF[T]])
+  }
 
-  implicit val stringSchema = primitive(StringTypeF)
-
-  implicit val shortSchema = primitive(ShortTypeF)
-
-  implicit val intSchema = primitive(IntTypeF)
+  implicit def udf[U, P: PrimitiveTypeF](implicit inj: Injection[U, P]) = new SchemaFor[U] {
+    def schema: DataType = primitive[P].schema
+  }
 
   def combine[T](ctx: CaseClass[SchemaFor, T]): SchemaFor[T] = new SchemaFor[T] {
     def schema: DataType = {

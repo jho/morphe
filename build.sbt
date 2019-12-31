@@ -6,7 +6,7 @@ ThisBuild / organization     := "org.jho"
 ThisBuild / organizationName := "morphe"
 
 lazy val root = (project in file("."))
-  .aggregate(core)
+  .aggregate(core, circe)
 
 lazy val core = project
   .settings(
@@ -20,7 +20,18 @@ lazy val core = project
         "org.scalamacros" % "paradise" % "2.1.1" cross CrossVersion.patch)
     )
   )
-  .settings(publishSettings)
+  .settings(commonSettings)
+
+lazy val circe = (project in file("circe"))
+  .settings(
+    name := "morphe-circe",
+    libraryDependencies := Seq(
+      circeCore,
+      scalaTest % Test
+    )
+  )
+  .settings(commonSettings)
+  .dependsOn(core)
 
 /*
 lazy val avro = (project in file("avro"))
@@ -36,13 +47,6 @@ lazy val spark = (project in file("."))
     name := "morphe-spark"
   )
   .settings(testDependencies)
-  .settings(publishSettings)
-
-lazy val avro = (project in file("."))
-  .settings(
-    name := "morphe-spark"
-  )
-  .settings(testDependencies)
   .settings(publishSettings)*/
 
 lazy val publishSettings = Seq(
@@ -51,5 +55,40 @@ lazy val publishSettings = Seq(
   bintrayVcsUrl := Some("git@github.com:jho/morphe.git")
 )
 
+lazy val compilerOptions = Seq(
+  //"-Xfatal-warnings",
+  "-Ywarn-unused-import",
+  "-Yrangepos", // required by SemanticDB compiler plugin
+  //"-deprecation", circe is throwing a bunch of these!!!
+  "-encoding",
+  "UTF-8",
+  "-feature",
+  "-language:existentials",
+  "-language:higherKinds",
+  "-language:implicitConversions",
+  "-unchecked",
+  "-Xlint",
+  "-Yno-adapted-args",
+  "-Ypartial-unification",
+  "-Ywarn-dead-code",
+  "-Ywarn-value-discard",
+  "-Ypatmat-exhaust-depth",
+  "off",
+  "-Xfuture"
+)
 
+lazy val commonSettings = Seq(
+  scalacOptions ++= compilerOptions,
+  addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.9"),
+  //addCompilerPlugin(scalafixSemanticdb),
+  //dependencyOverrides ++= Seq(),
+  parallelExecution in Test := false,
+  resolvers ++= Seq(
+    Resolver.sonatypeRepo("releases"),
+    Resolver.sonatypeRepo("snapshots"),
+    Resolver.jcenterRepo
+  )
+) ++ publishSettings
 
+//this has to be at the global level
+//scalafixDependencies in ThisBuild += "com.nequissimus" %% "sort-imports" % "0.3.1"

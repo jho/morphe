@@ -35,6 +35,11 @@ case object UUIDTypeF extends PrimitiveTypeF[UUID]
 case object TimestampTypeF extends PrimitiveTypeF[Instant]
 case object BinaryTypeF extends PrimitiveTypeF[Array[Byte]]
 
+object PrimitiveTypeF {
+  implicit val stringPrimitive = StringTypeF
+  implicit val intPrimitive = IntTypeF
+}
+
 final case class StructF[A](
   fields: List[FieldF[A]]
 ) extends DataTypeF[A]
